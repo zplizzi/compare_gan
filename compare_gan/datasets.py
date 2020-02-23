@@ -242,6 +242,7 @@ class ImageDatasetV2(object):
         split=split,
         data_dir=FLAGS.tfds_data_dir,
         as_dataset_kwargs={"shuffle_files": False})
+        # as_dataset_kwargs={"shuffle_files": False, "dataset_name": "celebahq"})
     ds = self._replace_labels(split, ds)
     ds = ds.map(self._parse_fn)
     return ds.prefetch(tf.contrib.data.AUTOTUNE)
@@ -390,6 +391,27 @@ class CelebaDataset(ImageDatasetV2):
     image = tf.image.resize_image_with_crop_or_pad(image, 160, 160)
     # Note: possibly consider using NumPy's imresize(image, (64, 64))
     image = tf.image.resize_images(image, [64, 64])
+    image.set_shape(self.image_shape)
+    image = tf.cast(image, tf.float32) / 255.0
+    label = tf.constant(0, dtype=tf.int32)
+    return image, label
+
+class CelebahqDataset(ImageDatasetV2):
+  def __init__(self, seed):
+    super().__init__(
+        name="celebahq",
+        tfds_name="image_label_folder/dataset_name=celebahq",
+        resolution=128,
+        colors=3,
+        num_classes=None,
+        eval_test_samples=3000,
+        seed=seed)
+
+  def _parse_fn(self, features):
+    image = features["image"]
+    # image = tf.image.resize_image_with_crop_or_pad(image, 160, 160)
+    # Note: possibly consider using NumPy's imresize(image, (64, 64))
+    # image = tf.image.resize_images(image, [64, 64])
     image.set_shape(self.image_shape)
     image = tf.cast(image, tf.float32) / 255.0
     label = tf.constant(0, dtype=tf.int32)
@@ -619,6 +641,7 @@ class SoftLabeledImagenetDataset(ImagenetDataset):
 
 DATASETS = {
     "celeb_a": CelebaDataset,
+    "celebahq": CelebahqDataset,
     "cifar10": Cifar10Dataset,
     "fashion-mnist": FashionMnistDataset,
     "lsun-bedroom": LsunBedroomDataset,
